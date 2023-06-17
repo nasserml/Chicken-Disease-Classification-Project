@@ -55,6 +55,19 @@ class DataIngestionConfig:
     local_data_file: Path
     unzip_dir: Path
     
+
+
+@dataclass(frozen=True)
+class PrepareBaseModelConfig:
+    root_dir: Path
+    base_model_path: Path
+    updated_base_model_path: Path
+    params_image_size: list
+    params_learning_rate: float
+    params_include_top: bool
+    params_weights: str
+    params_classes: int
+    
     
 """ 
 from dataclasses import dataclass: This line imports the dataclass decorator from the dataclasses module. The dataclass decorator simplifies the creation of classes that primarily hold data.
