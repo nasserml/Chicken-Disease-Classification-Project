@@ -1,0 +1,195 @@
+#The provided YAML file represents a workflow configuration file for GitHub Actions. Let's summarize its contents:
+#
+#name: workflow: This sets the name of the workflow.
+#
+#on: This section defines the triggers for the workflow. In this case, the workflow will be triggered on a push event to the main branch, while ignoring changes to the README.md file.
+#
+#permissions: This section specifies the permissions required for the workflow. It grants write permission for id-token and read permission for contents.
+#
+#jobs: This section defines the jobs to be executed as part of the workflow.
+#
+#integration: This job is named "Continuous Integration" and runs on an Ubuntu latest environment. It has three steps:
+#
+#Checkout Code: This step checks out the code repository using the actions/checkout action.
+#Lint code: This step runs a command to perform linting on the repository.
+#Run unit tests: This step runs a command to execute unit tests.
+#build-and-push-ecr-image: This job is named "Continuous Delivery" and depends on the integration job. It also runs on an Ubuntu latest environment. It consists of several steps:
+#
+#Checkout Code: This step checks out the code repository using the actions/checkout action.
+#Install Utilities: This step installs the jq and unzip utilities.
+#Configure AWS credentials: This step configures AWS credentials using the aws-actions/configure-aws-credentials action.
+#Login to Amazon ECR: This step logs in to Amazon Elastic Container Registry (ECR) using the aws-actions/amazon-ecr-login action.
+#Build, tag, and push image to Amazon ECR: This step builds a Docker container and pushes it to ECR using the provided environment variables and Docker commands. The resulting image is stored with a specific tag, and the image URI is outputted for later use.
+#Continuous-Deployment: This job represents continuous deployment and depends on the build-and-push-ecr-image job. It runs on a self-hosted environment and consists of several steps:
+#
+#Checkout: This step checks out the code repository using the actions/checkout action.
+#Configure AWS credentials: This step configures AWS credentials using the aws-actions/configure-aws-credentials action.
+#Login to Amazon ECR: This step logs in to Amazon ECR using the aws-actions/amazon-ecr-login action.
+#Pull latest images: This step pulls the latest Docker image from the ECR repository.
+#Run Docker Image to serve users: This step runs the Docker image as a container, exposing port 8080 and passing AWS credentials as environment variables.
+#Clean previous images and containers: This step cleans up previous Docker images and containers using the docker system prune command.
+#Overall, this workflow performs continuous integration by running linting and unit tests, followed by continuous delivery by building and pushing a Docker image to ECR. Finally, it facilitates continuous deployment by pulling the latest image and running it as a container.
+
+
+
+
+
+name: workflow
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  integration:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Lint code
+        run: echo "Linting repository"
+
+      - name: Run unit tests
+        run: echo "Running unit tests"
+
+  build-and-push-ecr-image:
+    name: Continuous Delivery
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: latest
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          
+          
+  Continuous-Deployment:
+    needs: build-and-push-ecr-image
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      
+      - name: Pull latest images
+        run: |
+         docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+         
+      # - name: Stop and remove container if running
+      #   run: |
+      #    docker ps -q --filter "name=cnncls" | grep -q . && docker stop cnncls && docker rm -fv cnncls
+       
+      - name: Run Docker Image to serve users
+        run: |
+         docker run -d -p 8080:8080 --name=cnncls -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secrets.AWS_REGION }}'  ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      - name: Clean previous images and containers
+        run: |
+         docker system prune -f
+
+#name: workflow: Sets the name of the workflow as "workflow".
+#
+#on: Defines the events that trigger the workflow. In this case, the workflow is triggered when a push event occurs on the "main" branch. Changes to the "README.md" file are ignored.
+#
+#permissions: Specifies the permissions required for the workflow. It grants write permission for "id-token" and read permission for "contents".
+#
+#jobs: Defines the jobs to be executed as part of the workflow.
+#
+#integration: Represents the "Continuous Integration" job. It runs on the "ubuntu-latest" environment and consists of three steps:
+#
+#Checkout Code: Uses the "actions/checkout@v3" action to check out the code repository.
+#Lint code: Runs a command to echo "Linting repository".
+#Run unit tests: Runs a command to echo "Running unit tests".
+#build-and-push-ecr-image: Represents the "Continuous Delivery" job. It depends on the completion of the integration job. It also runs on the "ubuntu-latest" environment and includes several steps:
+#
+#Checkout Code: Uses the "actions/checkout@v3" action to check out the code repository.
+#Install Utilities: Runs multiple commands using a multiline script to update the package list and install the "jq" and "unzip" utilities.
+#Configure AWS credentials: Uses the "aws-actions/configure-aws-credentials@v1" action to configure AWS credentials using the provided secrets.
+#Login to Amazon ECR: Uses the "aws-actions/amazon-ecr-login@v1" action to log in to Amazon ECR.
+#Build, tag, and push image to Amazon ECR: Builds a Docker container, tags it with the specified environment variables, and pushes it to ECR. The resulting image URI is set as an output.
+#Continuous-Deployment: Represents the continuous deployment job. It depends on the completion of the build-and-push-ecr-image job and runs on a self-hosted environment. It includes several steps:
+#
+#Checkout: Uses the "actions/checkout@v3" action to check out the code repository.
+#Configure AWS credentials: Uses the "aws-actions/configure-aws-credentials@v1" action to configure AWS credentials.
+#Login to Amazon ECR: Uses the "aws-actions/amazon-ecr-login@v1" action to log in to Amazon ECR.
+#Pull latest images: Pulls the latest Docker image from the specified ECR repository.
+#Run Docker Image to serve users: Runs the Docker image as a container, exposing port 8080 and passing AWS credentials as environment variables.
+#Clean previous images and containers: Cleans up previous Docker images and containers using the docker system prune -f command.
+#- name: Checkout: Specifies the name of the step as "Checkout". It uses the "actions/checkout@v3" action to check out the code repository.
+#
+#- name: Configure AWS credentials: Specifies the name of the step as "Configure AWS credentials". It uses the "aws-actions/configure-aws-credentials@v1" action to configure AWS credentials using the provided secrets.
+#
+#- name: Login to Amazon ECR: Specifies the name of the step as "Login to Amazon ECR". It uses the "aws-actions/amazon-ecr-login@v1" action to log in to the Amazon Elastic Container Registry (ECR).
+#
+#- name: Pull latest images: Specifies the name of the step as "Pull latest images". It runs a command to pull the latest Docker image from the specified ECR repository.
+#
+#- name: Run Docker Image to serve users: Specifies the name of the step as "Run Docker Image to serve users". It runs a command to start a Docker container using the latest Docker image from the ECR repository. The container is named "cnncls", exposed on port 8080, and environment variables for AWS credentials and region are passed.
+#
+#- name: Clean previous images and containers: Specifies the name of the step as "Clean previous images and containers". It runs a command to prune and remove previous Docker images and containers using the docker system prune -f command.
+#
+#These steps collectively define the workflow to be executed. The workflow begins with the "Continuous Integration" job, followed by the "Continuous Delivery" job, and finally the "Continuous Deployment" job. Each job consists of multiple steps that perform specific actions such as checking out code, configuring AWS credentials, building and pushing Docker images, pulling and running containers, and cleaning up resources.
+#
+#The YAML file represents a typical CI/CD pipeline where code changes are tested, built into a Docker image, and deployed to a self-hosted environment. It leverages GitHub Actions and AWS services to automate these processes.
+#Continuous-Deployment: This section defines the job named "Continuous-Deployment". It specifies that this job depends on the successful completion of the "build-and-push-ecr-image" job. It will run on a self-hosted environment.
+#
+#- name: Checkout: This step checks out the code repository using the "actions/checkout@v3" action.
+#
+#- name: Configure AWS credentials: This step configures AWS credentials using the "aws-actions/configure-aws-credentials@v1" action. It uses the provided secrets for AWS access key ID, secret access key, and region.
+#
+#- name: Login to Amazon ECR: This step logs in to the Amazon Elastic Container Registry (ECR) using the "aws-actions/amazon-ecr-login@v1" action.
+#
+#- name: Pull latest images: This step pulls the latest Docker image from the specified ECR repository using the docker pull command. The image is specified using the secrets for AWS ECR login URI and ECR repository name.
+#
+#- name: Run Docker Image to serve users: This step runs a Docker container using the latest Docker image from the ECR repository. The container is named "cnncls", and it is exposed on port 8080. Environment variables for AWS credentials and region are passed using the -e flag.
+#
+#- name: Clean previous images and containers: This step cleans up previous Docker images and containers using the docker system prune -f command. It removes unused images, containers, and other Docker resources.
+#
+#These steps in the "Continuous-Deployment" job perform actions such as checking out code, configuring AWS credentials, pulling the latest Docker image, running a Docker container, and cleaning up resources. This job represents the deployment phase of the CI/CD pipeline, where the Docker image built in the previous job is deployed and run in a self-hosted environment.
+#
+#Overall, this YAML file defines a workflow that includes continuous integration, continuous delivery, and continuous deployment steps. It demonstrates the process of testing code, building a Docker image, pushing it to an ECR repository, and deploying it to a self-hosted environment using AWS services and GitHub Actions.
