@@ -7,3 +7,14 @@ CLASSES: 2
 WEIGHTS: imagenet
 LEARNING_RATE: 0.01
 
+#This code represents a YAML file named params.yaml that contains parameter settings for a machine learning model or pipeline. Here's an explanation of each line:
+#
+#AUGMENTATION: True: Specifies whether data augmentation should be applied during training. If set to True, data augmentation techniques like random cropping, flipping, or rotation can be used to increase the diversity of training data.
+#IMAGE_SIZE: [224, 224, 3]: Defines the size of input images for the model. In this case, it is set to [224, 224, 3], indicating an image size of 224x224 pixels with 3 color channels (RGB).
+#BATCH_SIZE: 16: Specifies the number of samples in each training batch. During training, the model updates its weights based on the gradients computed from this batch of data.
+#INCLUDE_TOP: False: Indicates whether to include the top (classification) layers of the model. If set to False, the top layers will be excluded, and only the feature extraction layers will be used. This is often useful for transfer learning.
+#EPOCHS: 1: Defines the number of times the entire training dataset is passed through the model during training. Each epoch consists of one forward pass and one backward pass (gradient calculation) for all the training samples.
+#CLASSES: 2: Specifies the number of classes in the classification problem. This is relevant when training a model for a specific classification task.
+#WEIGHTS: imagenet: Indicates the weight initialization for the model. Setting it to imagenet means that the model's initial weights will be loaded from the pre-trained weights of the ImageNet dataset, which is a large-scale image classification dataset.
+#LEARNING_RATE: 0.01: Determines the step size at which the model's weights are updated during training. A higher learning rate can result in faster convergence but may also lead to overshooting the optimal solution, while a lower learning rate can lead to slower convergence but may result in better fine-tuning.
+#These parameter settings can be used as configuration options for a machine learning model, allowing customization and experimentation with different settings.

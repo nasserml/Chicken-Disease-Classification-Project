@@ -28,3 +28,50 @@ prepare_callbacks:
 training:
   root_dir: artifacts/training
   trained_model_path: artifacts/training/model.h5
+
+
+  #yaml
+# 
+#artifacts_root: artifacts
+#artifacts_root specifies the root directory where the artifacts (output files) of the pipeline will be stored. In this case, the value is set to artifacts.
+#yaml
+# 
+#data_ingestion:
+#  root_dir: artifacts/data_ingestion
+#  source_URL: https://github.com/nasserml/Branching/raw/main/Chicken-fecal-images.zip
+#  local_data_file: artifacts/data_ingestion/data.zip
+#  unzip_dir: artifacts/data_ingestion
+#data_ingestion represents a section related to the data ingestion stage of the pipeline. It contains the following properties:
+#root_dir specifies the root directory where the data ingestion artifacts will be stored.
+#source_URL provides the URL from which the data will be downloaded.
+#local_data_file specifies the local file path where the downloaded data will be saved.
+#unzip_dir indicates the directory where the downloaded data will be extracted.
+#yaml
+# 
+#prepare_base_model:
+#  root_dir: artifacts/prepare_base_model
+#  base_model_path: artifacts/prepare_base_model/base_model 
+#  updated_base_model_path: artifacts/prepare_base_model/base_model_updated.h5
+#prepare_base_model represents a section related to the preparation of the base model stage of the pipeline. It includes the following properties:
+#root_dir specifies the root directory where the artifacts of the prepare base model stage will be stored.
+#base_model_path indicates the file path where the base model will be saved.
+#updated_base_model_path specifies the file path where the updated base model will be saved.
+#yaml
+# 
+#prepare_callbacks:
+#  root_dir: artifacts/prepare_callbacks
+#  tensorboard_root_log_dir: artifacts/prepare_callbacks/tensorboard_log_dir
+#  checkpoint_model_filepath: artifacts/prepare_callbacks/checkpoint_dir/model.h5
+#prepare_callbacks represents a section related to the preparation of callbacks for training. It contains the following properties:
+#root_dir specifies the root directory where the artifacts related to preparing callbacks will be stored.
+#tensorboard_root_log_dir indicates the directory where the logs for TensorBoard will be stored.
+#checkpoint_model_filepath specifies the file path where the trained model checkpoint will be saved.
+#yaml
+# 
+#training:
+#  root_dir: artifacts/training
+#  trained_model_path: artifacts/training/model.h5
+#training represents a section related to the training stage of the pipeline. It includes the following properties:
+#root_dir specifies the root directory where the artifacts related to the training stage will be stored.
+#trained_model_path indicates the file path where the final trained model will be saved.
+#These configurations define the paths and directories where the pipeline artifacts will be stored at each stage, such as data ingestion, preparing the base model, preparing callbacks, and training.
